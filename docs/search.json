@@ -1,0 +1,58 @@
+[
+  {
+    "objectID": "index.html#grafiki-poglądowe",
+    "href": "index.html#grafiki-poglądowe",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "1.1 Grafiki poglądowe",
+    "text": "1.1 Grafiki poglądowe\n\n\n\n\n\n\n\nSchemat silnika\n\n\n\n\n\n\n\n\n\nSchemat samochodu"
+  },
+  {
+    "objectID": "index.html#przygtowanie-zbioru-danych-do-analizy",
+    "href": "index.html#przygtowanie-zbioru-danych-do-analizy",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.1 Przygtowanie zbioru danych do analizy",
+    "text": "3.1 Przygtowanie zbioru danych do analizy\nKrótkie przygotwanie zbioru do analizy, czyli uzupełnienie braków w danych oraz mapowanie odpowiednich słów na liczby.\n\n3.1.1 Braki procentowo\n\n\n\n\n\n\nW zbiorze znajdują się nieliczne braki danych, które zostaną uzupełnione przy użyciu metody random Forest. Dodatkowo dla łatwiejszej analizy liczby zapisane słownie zostaną zamienione na zwykłe cyfry. Do odpowiendnich producentów samochodów przypiszemy również nazwy kontynentów, z których pochodzą samochody.\n\n\n3.1.2 Po uzupełnieniu\n\n\n\n\n\n\nJak widzimy uzupełnianie zbioru danych powiodło się, więc płynnie możemy przejśc do dalszej analizy naszego zbioru."
+  },
+  {
+    "objectID": "index.html#macierz-korelacji",
+    "href": "index.html#macierz-korelacji",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.2 Macierz korelacji",
+    "text": "3.2 Macierz korelacji\n\n\n\n\n\n\n\n\n\nNa podstawie macierzy korelacji można stwierdzić, że największe zależności występują pomiędzy ceną, a rozstawem osi, dlugością, szerokością, masą własną pojazdu, ilością cylindrów, rozmiarem silnika oraz mocą jaką generuje. W dalszej analizie skupimy się na tych 8 parametrach oraz podzielimy samochody na dwie grupy cenowe “low/medium” i “high”. Do tego pozbędziemy się danych, które nie mają żadnej korelacji z ceną samochodu."
+  },
+  {
+    "objectID": "index.html#podział-na-grupy-cenowe",
+    "href": "index.html#podział-na-grupy-cenowe",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.3 Podział na grupy cenowe",
+    "text": "3.3 Podział na grupy cenowe\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nJak widać na przedstawionych wykresach zbiór został podzielony na dwie grupy, ponieważ grupa “high” nie była wystarczająco repreznatywna, więc została dodana do grupy “medium”. Wyraźnie widać, że większość samochodów w grupie “low” ma niższe ceny oscylujące w okolicach 6tyś dolarów, podzas gdy samochody w grupie “medium/high” są zncznie droższe oraz rozłożone bardziej równomiernie."
+  },
+  {
+    "objectID": "index.html#parametry-fizyczne-samochodu-kontra-cena",
+    "href": "index.html#parametry-fizyczne-samochodu-kontra-cena",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.4 Parametry fizyczne samochodu kontra cena",
+    "text": "3.4 Parametry fizyczne samochodu kontra cena\n\n\n\n\n\n\n\n\n\nAnalizując powyższe wykresy możemy zauważyć, że samochody o większych rozmiarach, zarówno w kontekście długości, rozstawu osi, szerokości jak i masy własnej, mają tendencję do wyższej ceny. Może to sugerować, że większe samochody oferują więcej przestrzeni, co przekłada się na wyższy komfort użytkowania oraz koszty produkcji, a tym samym wyższą cenę."
+  },
+  {
+    "objectID": "index.html#parametry-związane-z-silnikiem-kontra-cena",
+    "href": "index.html#parametry-związane-z-silnikiem-kontra-cena",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.5 Parametry związane z silnikiem kontra cena",
+    "text": "3.5 Parametry związane z silnikiem kontra cena\n\n\n\n\n\n\n\n\n\nWykresy znajdujące się powyżej ponownie dowodzą, że występują znaczne różnice pomiędzy grupami cenowymi. Jak widzimy samochody znajdujące się w tańszej grupie posiadają mniejsze oraz słabsze silniki, a co za tym idzie są one mniej wydajne. Ostatni trzeci wykres jest bezpośrednio związany z pojemnością silnika, ponieważ jest to średnica tłoków. Co ciekawe ta również jest zależna od ceny. Na podstawie tych wykresów możemy jasno stwierdzić, że silniki w droższych samochodach są “mocnijesze” oraz bardziej wydajne. Dodatkowo patrząc na kolejny wykres widzimy, jak liczba cylindrów w samochodach zmienia się w zależności od grupy cenowej. Z danych wynika, że samochody droższe mają tendencję do posiadania większej ilości cylindrów."
+  },
+  {
+    "objectID": "index.html#średnia-wartość-samochodów-przypisana-do-kontynentów",
+    "href": "index.html#średnia-wartość-samochodów-przypisana-do-kontynentów",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.6 Średnia wartość samochodów przypisana do kontynentów",
+    "text": "3.6 Średnia wartość samochodów przypisana do kontynentów\n\n\n\n\n\n\n\n\n\nSpoglądając na mape możemy łatwo zauwżyć, że samochody pochodzące z Europy są tymi najdroższymi. Gdyby, się nad tym chwile zastanowić ma to sens, ponieważ większość producentów posiadających w swojej ofercie bardziej luksusowe samochody pochodzą z Europy. Możemy to również zaobserwować na wykresie znajdującym się poniżej."
+  },
+  {
+    "objectID": "index.html#wykresy-pomocnicze",
+    "href": "index.html#wykresy-pomocnicze",
+    "title": "Jaki wpływ na atrybuty fizyczne samochodu ma cena?",
+    "section": "3.7 Wykresy pomocnicze",
+    "text": "3.7 Wykresy pomocnicze\nDla osób bardziej dociekliwych zostały stworzone dodatkowo 2 wykresy interaktywne, aby można było łatwiej i przyjemniej zapoznać się przedstawionymi wyżej wnioskami."
+  }
+]
