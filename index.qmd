@@ -1,0 +1,463 @@
+---
+title: "Jaki wpływ na atrybuty fizyczne samochodu ma cena?"
+author: "Bartłomiej Ciucias"
+date: today
+number-sections: true
+theme:
+  light: flatly
+  dark: darkly
+title-block-banner: "#f0f3f5"
+title-block-banner-color: "black"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-title: "Table of contents"
+    toc-depth: 3
+    toc-location: right
+    code-fold: true
+    code-tools: true
+    html-math-method: katex
+execute:
+  echo: false
+  message: false
+  warning: false
+  include: true
+editor: visual
+---
+
+![]()
+
+```{r}
+#w html: embed-resources: true
+#Wszystkie biblioteki
+library(rio)
+library(mice)
+library(corrplot)
+library(tidyverse)
+library(factoextra)
+library(cluster)
+library(ggplot2)
+library(gridExtra)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(patchwork)
+library(networkD3)
+library(dplyr)
+library(DT)
+library(plotly)
+options(scipen = 999)
+```
+
+# Opis zbioru oraz przedstawienie problemu
+
+Przeprowadzona analiza ma na celu znalezienie i pokazanie zależności pomiędzy ceną, a jego właściwościami oraz pochodzeniem. Dane znajdujące się w zbiorze pochodzą z roku 1985, opisują one następujące elementy oraz parametry pojazdów:
+
+1.  make(marka): alfa-romero, audi, bmw, chevrolet, dodge, honda, isuzu, jaguar, mazda, mercedes-benz, mercury, mitsubishi, nissan, peugot, plymouth, porsche, renault, saab, subaru, toyota, volkswagen, volvo
+
+2.  fuel-type(typ paliwa jakim jest zasilany silnik): diesel, gas.
+
+3.  aspiration(rodzaj silnika): std, turbo.
+
+4.  num-of-doors(liczba drzwi): four, two.
+
+5.  body-style(typ nadwozia): hardtop, wagon, sedan, hatchback, convertible.
+
+6.  drive-wheels(napęd): 4wd, fwd, rwd.
+
+7.  engine-location(umiejscowienie silnika): front, rear.
+
+8.  wheel-base(rozstaw osi): continuous from 86.6 120.9.
+
+9.  length(długość w calach): continuous from 141.1 to 208.1.
+
+10. width(szerokość w calach): continuous from 60.3 to 72.3.
+
+11. height(wysokość w calach): continuous from 47.8 to 59.8.
+
+12. curb-weight(masa własna w funtach): continuous from 1488 to 4066.
+
+13. engine-type(typ silnika-wałki rozrządu): dohc, dohcv, l, ohc, ohcf, ohcv, rotor.
+
+14. num-of-cylinders(liczba cylindrów): eight, five, four, six, three, twelve, two.
+
+15. engine-size(rozmiar silnika w calach sześciennych): continuous from 61 to 326.
+
+16. fuel-system(system zasilania paliwem) 1bbl, 2bbl, 4bbl, idi, mfi, mpfi, spdi, spfi
+
+17. bore(średnica cylidnra w calach): continuous from 2.54 to 3.94
+
+18. stroke(skok tłoka w calach): continuous from 2.07 to 4.17.
+
+19. compression-ratio(kompresja): continuous from 7 to 23
+
+20. horsepower(konie mechaniczne): continuous from 48 to 288.
+
+21. peak-rpm(najwyższe obroty): continuous from 4150 to 6600.
+
+22. city-mpg(spalanie w mieście- ile mil na galon paliwa): continuous from 13 to 49.
+
+23. highway-mpg(spalanie w trasie- ile mil na galon paliwa): continuous from 16 to 54.
+
+24. price(cena w dolarach): continuous from 5118 to 45400.
+
+## Grafiki poglądowe
+
+[![Schemat silnika](images/Jim%20Clark%20-%20Bosch%20Hockenheim%20Historic%20_%20Automotive%20mechanic,%20Car%20mechanic,%20Automobile%20engineering.jpg){fig-align="center"}](https://pl.pinterest.com/pin/1025131933935461831/)
+
+[![Schemat samochodu](images/Car%20Blueprint.jpg){fig-align="center"}](https://pl.pinterest.com/pin/1025131933935461850/)
+
+# Tabela z zbiorem danych
+
+```{r}
+#wczytanie zbioru danych
+Dataset <- import("Automobile_data.csv")
+
+#usunięcie dwoch pierwszych kolumn ktore są zbędne w moim przypadku
+Dataset <- Dataset[,-c(1,2)]
+datatable(Dataset)
+```
+
+# Analiza
+
+## Przygtowanie zbioru danych do analizy
+
+Krótkie przygotwanie zbioru do analizy, czyli uzupełnienie braków w danych oraz mapowanie odpowiednich słów na liczby.
+
+### Braki procentowo
+
+```{r}
+
+#Zamiana pól z ? na NA
+Dataset[Dataset=="?"] <- NA
+
+#Sprawdzenie procentowo ile jest brakow
+percentage <- colSums(is.na(Dataset)) / nrow(Dataset)
+percentage <- data.frame(percentage)
+datatable(percentage)%>%formatPercentage("percentage")
+
+```
+
+W zbiorze znajdują się nieliczne braki danych, które zostaną uzupełnione przy użyciu metody random Forest. Dodatkowo dla łatwiejszej analizy liczby zapisane słownie zostaną zamienione na zwykłe cyfry. Do odpowiendnich producentów samochodów przypiszemy również nazwy kontynentów, z których pochodzą samochody.
+
+### Po uzupełnieniu
+
+```{r}
+#mapowanie słów na liczby
+word_to_num <- c("four"=4,"two"=2,"three"=3,"five"=5,"six"=6,"eight"=8,"twelve"=12)
+
+#fukcja zmieniajaca wyrazy na liczby
+convert_words <- function(x)  {
+  sapply(x, function(val) ifelse(val %in% names(word_to_num), word_to_num[val], val))}
+
+#Zastosowanie funkcji na całej ramce danych
+Dataset <- as.data.frame(lapply(Dataset, convert_words))
+
+#wektor z indeksami kolumn do konwersji na typ numeric
+cols_to_convert <- c(4,8,9,10,11,12,14,15,17,18,19,20,21,22,23,24)
+
+#wszystkie dane na factor
+Dataset[] <- lapply(Dataset, function(x) if (is.character(x)) as.factor(x) else x)
+
+#zamiana na zmienne numeryczne
+Dataset[cols_to_convert] <- lapply(Dataset[cols_to_convert], function(x) as.numeric(as.character(x)))
+```
+
+```{r}
+#| include: false
+#Dobranie odpowiedniej metody uzupełniania NA dla zmiennych numerycznych i factor
+method <- make.method(Dataset)
+
+#Metoda dla zmiennnych typu factor
+method[sapply(Dataset, is.factor)] <- "rf"
+
+#Metoda dla zmiennych typu numeric
+method[sapply(Dataset, is.numeric)] <- "rf"
+
+#Generowanie danych do uzupełnienia
+imputation <- mice(Dataset, method=method)
+
+#Uzupełnienie zbioru danych
+Data <- complete(imputation)
+IleNA <- colSums(is.na(Data))
+IleNA <- data.frame(IleNA)
+```
+
+```{r}
+datatable(IleNA)
+```
+
+```{r}
+#Dodanie regionów na podstawie marki samochodów
+#1-Europa
+#2-North America
+#3-Asia
+Data <- Data %>%
+  mutate(continent = case_when(
+    make %in% c("audi","bmw","mercedes-benz","porsche","renault","volkswagen","volvo","alfa-romero","peugot","jaguar","saab")~"Europe",
+    make %in% c("chevrolet","dodge","mercury","plymouth")~"North America",
+    make %in% c("subaru","toyota","mitsubishi","nissan","honda","isuzu","mazda")~"Asia"))
+```
+
+Jak widzimy uzupełnianie zbioru danych powiodło się, więc płynnie możemy przejśc do dalszej analizy naszego zbioru.
+
+## Macierz korelacji
+
+```{r}
+#Usunięcie kolumn z zmiennymi typu factor
+Data_correlation <- Data %>% select(-make, -fuel.type,-aspiration, -engine.type, -fuel.system, -body.style, -drive.wheels, -engine.location, -continent)
+
+#macierz korelacji
+corrplot(cor(Data_correlation),method="square",type="full", tl.col = "black", tl.srt = 45)
+```
+
+Na podstawie macierzy korelacji można stwierdzić, że największe zależności występują pomiędzy ceną, a rozstawem osi, dlugością, szerokością, masą własną pojazdu, ilością cylindrów, rozmiarem silnika oraz mocą jaką generuje. W dalszej analizie skupimy się na tych 8 parametrach oraz podzielimy samochody na dwie grupy cenowe "low/medium" i "high". Do tego pozbędziemy się danych, które nie mają żadnej korelacji z ceną samochodu.
+
+## Podział na grupy cenowe
+
+```{r}
+Data <- Data %>% select(-num.of.doors,-stroke,-compression.ratio,-city.mpg,-highway.mpg)
+
+#PODZIAŁ NA GRUPY CENOWE
+
+median_price <- median(Data$price)
+
+Data$price_group <- cut(
+  Data$price,
+  breaks = c(-Inf, median_price, Inf),
+  labels = c("low", "medium/high"),
+  right = FALSE
+)
+
+Price_group <- Data %>%
+  group_by(price_group) %>%
+  summarise(Count=n())
+
+ggplot(Price_group, aes(y = Count, x=price_group, fill = price_group)) +
+  geom_col() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Grupy ilościowo",
+       x = "Grupy",
+       y = "Ilość",
+       fill = "Price groups") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set2")
+
+ggplot(Data, aes(x = price, fill = price_group)) +
+  geom_density(alpha = 0.5, na.rm = TRUE)+
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Price distribution in groups",
+       x = "Price",
+       y = "Density", 
+       fill = "Price groups")+
+  scale_fill_brewer(palette = "Set2")
+```
+
+Jak widać na przedstawionych wykresach zbiór został podzielony na dwie grupy, ponieważ grupa "high" nie była wystarczająco repreznatywna, więc została dodana do grupy "medium". Wyraźnie widać, że większość samochodów w grupie "low" ma niższe ceny oscylujące w okolicach 6tyś dolarów, podzas gdy samochody w grupie "medium/high" są zncznie droższe oraz rozłożone bardziej równomiernie.
+
+## Parametry fizyczne samochodu kontra cena
+
+```{r}
+plot1 <- ggplot(Data, aes(x = wheel.base, y = price)) +
+  geom_point(aes(colour = price_group)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Wheel Base vs Price",
+       x = "Wheel Base",
+       y = "Price",
+       color = "Price groups") +
+  scale_fill_brewer(palette = "Set2")
+
+plot2 <- ggplot(Data, aes(x = length, y = price)) +
+  geom_point(aes(colour = price_group)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Length vs Price",
+       x = "Length",
+       y = "Price",
+       color = "Price groups") +
+  scale_fill_brewer(palette = "Set2")
+
+plot3 <- ggplot(Data, aes(x = width, y = price)) +
+  geom_point(aes(colour = price_group)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Width vs Price",
+       x = "Width",
+       y = "Price",
+       color = "Price groups") +
+  scale_fill_brewer(palette = "Set2")
+
+plot4 <- ggplot(Data, aes(x = curb.weight, y = price)) +
+  geom_point(aes(colour = price_group)) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Curb Weight vs Price",
+       x = "Curb Weight",
+       y = "Price", 
+       color = "Price groups") +
+  scale_fill_brewer(palette = "Set2")
+
+(plot1+plot2)/(plot3+plot4)+plot_layout(guides="collect")
+```
+
+Analizując powyższe wykresy możemy zauważyć, że samochody o większych rozmiarach, zarówno w kontekście długości, rozstawu osi, szerokości jak i masy własnej, mają tendencję do wyższej ceny. Może to sugerować, że większe samochody oferują więcej przestrzeni, co przekłada się na wyższy komfort użytkowania oraz koszty produkcji, a tym samym wyższą cenę.
+
+## Parametry związane z silnikiem kontra cena
+
+```{r}
+plot5 <- ggplot(Data, aes(x = price_group, y = engine.size, fill = price_group)) +
+  geom_violin() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Engine Size vs Price Group",
+       x = "Price Group",
+       y = "Engine Size", 
+       fill = "Price groups") +
+  theme(aspect.ratio = 1)+
+  scale_fill_brewer(palette = "Set2")
+
+plot6 <- ggplot(Data, aes(x = price_group, y = horsepower, fill = price_group)) +
+  geom_violin() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Horsepower vs Price",
+       x = "Price Group",
+       y = "Horsepower", 
+       fill = "Price groups")+ 
+  theme(aspect.ratio = 1)+
+  scale_fill_brewer(palette = "Set2")
+
+plot7 <- ggplot(Data, aes(x = price_group, y = bore, fill = price_group)) +
+  geom_violin() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Bore vs Price",
+       x = "Price Group",
+       y = "Bore",
+       fill = "Price groups")+ 
+  theme(aspect.ratio = 1)+
+  scale_fill_brewer(palette = "Set2")
+
+
+plot5+plot6+plot7+plot_layout(guides="collect") & theme(legend.position = "bottom")
+```
+
+Wykresy znajdujące się powyżej ponownie dowodzą, że występują znaczne różnice pomiędzy grupami cenowymi. Jak widzimy samochody znajdujące się w tańszej grupie posiadają mniejsze oraz słabsze silniki, a co za tym idzie są one mniej wydajne. Ostatni trzeci wykres jest bezpośrednio związany z pojemnością silnika, ponieważ jest to średnica tłoków. Co ciekawe ta również jest zależna od ceny. Na podstawie tych wykresów możemy jasno stwierdzić, że silniki w droższych samochodach są "mocnijesze" oraz bardziej wydajne. Dodatkowo patrząc na kolejny wykres widzimy, jak liczba cylindrów w samochodach zmienia się w zależności od grupy cenowej. Z danych wynika, że samochody droższe mają tendencję do posiadania większej ilości cylindrów.
+
+```{r}
+plot8 <- ggplot(Data, aes(x = num.of.cylinders, fill = price_group)) +
+  geom_histogram(bins=30, position = "dodge") +
+  scale_x_continuous(breaks=seq(0, 12, by=2)) +
+  labs(title = "Distribution of the number of cylinders in price groups",
+       x = "Ilość cylindrów",
+       y = "Liczba samochodów",
+       fill = "Price groups") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_brewer(palette = "Set2")
+
+plot8
+```
+
+## Średnia wartość samochodów przypisana do kontynentów
+
+```{r}
+Data_map <- Data[,c("length","width","height","engine.size","horsepower","continent","price")]
+Data_map_avg_Price <- Data_map %>%
+  group_by(continent) %>%
+  summarise(mean_value=mean(price))
+world <- ne_countries(scale="medium", returnclass = "sf")
+world <- world %>% 
+  select(continent, geometry) %>%
+  distinct()
+
+map_data <- world %>%
+  left_join(Data_map_avg_Price, by = "continent")
+ggplot(data=map_data)+
+  geom_sf(aes(fill=mean_value),color = "black")+
+  labs(title="Average value of cars from continents",
+       fill = "Mean value")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  scale_fill_viridis_c(option="plasma",trans="log10", na.value="grey")
+```
+
+Spoglądając na mape możemy łatwo zauwżyć, że samochody pochodzące z Europy są tymi najdroższymi. Gdyby, się nad tym chwile zastanowić ma to sens, ponieważ większość producentów posiadających w swojej ofercie bardziej luksusowe samochody pochodzą z Europy. Możemy to również zaobserwować na wykresie znajdującym się poniżej.
+
+```{r}
+ggplot(Data, aes(x = make, fill = price_group)) +
+  geom_bar() +
+  facet_wrap(~continent, scales = "free_x") +
+  labs(title = "Car Distribution by Make, Continent, and Price Group",
+       x = "Car Make",
+       y = "Count",
+       fill = "Price Group") +
+  theme(plot.title = element_text(hjust = 0.5),axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+## Wykresy pomocnicze
+
+Dla osób bardziej dociekliwych zostały stworzone dodatkowo 2 wykresy interaktywne, aby można było łatwiej i przyjemniej zapoznać się przedstawionymi wyżej wnioskami.
+
+```{r}
+links_continent <- data.frame(
+  source = Data$continent,
+  target = Data$make,
+  value = 1
+) %>%
+  group_by(source, target) %>%
+  summarise(value = n(), .groups = 'drop')
+
+links_price <- data.frame(
+  source = Data$make,
+  target = Data$price_group,
+  value = 1
+) %>%
+  group_by(source, target) %>%
+  summarise(value = n(), .groups = 'drop')
+
+links <- rbind(
+  links_continent,
+  links_price
+)
+
+nodes <- data.frame(
+  name = c(as.character(unique(links$source)), 
+           as.character(unique(links$target))) %>% 
+  unique()
+)
+
+links$IDsource <- match(links$source, nodes$name) - 1
+links$IDtarget <- match(links$target, nodes$name) - 1
+
+links <- links[complete.cases(links), ]
+
+sankeyNetwork(Links = links, Nodes = nodes,
+             Source = "IDsource", Target = "IDtarget",
+             Value = "value", NodeID = "name",
+             sinksRight = TRUE, fontSize = 12,
+             )
+```
+
+```{r}
+interactive_plot <- plot_ly(
+  data = Data,
+  x = ~horsepower,
+  y = ~price,
+  type = 'scatter',
+  mode = 'markers',
+  color = ~make,
+  size = ~engine.size,
+  text = ~paste('Make:', make, '<br>Body Style:', body.style, '<br>Fuel Type:', fuel.type,'<br>Engine type:', engine.type, '<br>Drive wheels:', drive.wheels,'<br>Num of cylinders', num.of.cylinders)
+) %>%
+  layout(
+    title = "",
+    xaxis = list(title = "Horsepower"),
+    yaxis = list(title = "Price")
+  )
+
+interactive_plot
+
+```
+
+# Podsumowanie
+
+Zbierając wszystkie informacje jakie udało się zebrać podczas analizy tego zbioru możemy wyciągnąć następujące wnioski. Większe samochody, z bardziej zaawansowanymi silnikami (więcej cylindrów, większa średnica cylindra), zazwyczaj są droższe. Dodatkowo, samochody produkowane w krajach Europy mają wyższą cenę, co może wynikać z wyższych kosztów produkcji, bardziej rygorystycznych norm bezpieczeństwa oraz wyższej jakości użytych materiałów. Z kolei pojazdy produkowane w Azji, gdzie koszty produkcji są niższe, są przeważnie tańsze, mimo że mogą oferować podobne cechy techniczne. Analiza ta pozwala na lepsze zrozumienie zależności między ceną samochodu, jego fizycznymi atrybutami oraz regionem produkcji, co może stanowić cenną informację zarówno dla konsumentów, jak i producentów samochodów. Nie zapominajmy jednak o tym, że był to zbiór zawierający dane do 1985 roku. Chociaż spoglądając na dzisiejszy rynek aut osobowych uważam, że moglibyśmy znaleźć podobne zależności jak w analizowanym zbiorze.
+
+# Źródła:
+
+<https://archive.ics.uci.edu/dataset/10/automobile>

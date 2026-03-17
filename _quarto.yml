@@ -1,0 +1,9 @@
+project:
+  type: website
+  output-dir: docs
+
+book:
+  title: "Moja Analiza"
+
+render:
+  - index.qmd
